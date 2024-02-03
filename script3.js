@@ -4,7 +4,7 @@ obtenerJson();
 console.table(productos);
 let carro = JSON.parse(localStorage.getItem('carro')) || [];
 let tablaBody = document.getElementById('tablaBody');
-let contenedorProds = document.getElementById('misprods');
+let contenedorProds = document.getElementById('misProds');
 let finalizarBtn = document.getElementById('finalizar');
 let vaciarBtn = document.getElementById('vaciar');
 
@@ -14,12 +14,12 @@ let vaciarBtn = document.getElementById('vaciar');
 //dibujo tabla si hay algo en el storage al comienzo
 function dibujarTabla() {
     for(const prod of carro){
-        document.getElementById('tablaBody').innerHTML += `
+        tablaBody.innerHTML += `
             <tr>
                 <td>${prod.id}</td>
                 <td>${prod.nombre}</td>
                 <td>${prod.precio}</td>
-                <td><button class= "btn btn-light" onclick="eliminar(event)">tacho basura</button></td>
+                <td><button class= "btn btn-light" onclick="eliminar(event)">Eliminar</button></td>
             </tr>
         `; 
     }
@@ -28,37 +28,30 @@ function dibujarTabla() {
     infoTotal.innerText="Total a pagar $: "+totalCarrito;
 }
 
-//función para eliminar elementos del carro
+
 //Para eliminar prods del carro
 function eliminar(e) {
-    console.log(e);
     let fila = e.target.parentElement.parentElement;
-    console.log(fila);
     let id = fila.children[0].innerText;
-    console.log(id);
     let indice = carro.findIndex(prod => prod.id == id);
-    console.log(indice);
     //remueve el prod del carro
     carro.splice(indice,1);
-    console.table(carro);
     //remueve la fila de la tabla
     fila.remove();
     //recalcular el total
     let preciosAcumulados = carro.reduce((acc,prod) => acc + prod.precio,0);
     total.innerText="Total a pagar $: "+preciosAcumulados;
-    //agregar el calculo en pesos
-
     //storage
-    localStorage.setItem('carro',JSON,stringify(carro));  
+    localStorage.setItem('carro',JSON.stringify(carro));  
 }
 
-// función que muestra las cards en la pantalla 
+// Función que muestra las cards en la pantalla 
 function renderizarProductos(listaProds) {
     //se vacia el carro para evitar duplicados
     contenedorProds.innerHTML = '';
-    //cangando las cards en los productos solicitados
+    //cargando las cards en los productos solicitados
     for(const prod of listaProds){
-        contededorProds.innerHTML += `
+        contenedorProds.innerHTML += `
         <div class="card col-sm-2" style="width: 18rem; padding: 5px; margin: 5px;">
             <img src=${prod.foto} class="card-img-top" alt="imagen card">
             <div class="card-body">
@@ -72,26 +65,24 @@ function renderizarProductos(listaProds) {
     //eventos
     let botones = document.getElementsByClassName('compra');
     for(const boton of botones){
-        //opcion 1
+        //opcion click
         boton.addEventListener('click',()=>{
             const prodACarro = productos.find((prod) => prod.id == boton.id);
-            console.log(prodACarro);
-            agregarACarro(prodACarro);
+            agregarACarrito(prodACarro);
         })
 
-        //opcion 2
+        //opcion hover
         boton.onmouseover = () => {
-            boton.classList.replace('btn-primary','btn.warning');
+            boton.classList.replace('btn-primary','btn-warning');
         }
         boton.onmouseout = () => {
             boton.classList.replace('btn-warning','btn-primary');
         }
     }
 }
-
+// Función Modal
 function agregarACarrito(prod) {
     carro.push(prod);
-    console.table(carro);
     Swal.fire({
         title: 'Fantastico!',
         text: `Agregaste ${prod.nombre} al carrito!`,
@@ -100,17 +91,16 @@ function agregarACarrito(prod) {
         imageHeight: 200,
         imageAlt: prod.nombre, 
     });
-    tableBody.innerHTML += `
+    tablaBody.innerHTML += `
         <tr>
         <td>${prod.id}</td>
         <td>${prod.nombre}</td>
         <td>${prod.precio}</td>
-        <td><button class= "btn btn-light" onclick="eliminar(event)">tacho basura</button></td>
+        <td><button class= "btn btn-light" onclick="eliminar(event)">Eliminar</button></td>
     </tr>
     `;
     //calcular total
     let total = carro.reduce((acc,prod) => acc + prod.precio,0);
-    console.log(total);
     document.getElementById('total').innerText = `Total a pagar $:${total}`;
     //trabajar con el storage
     localStorage.setItem('carro',JSON.stringify(carro)); 
@@ -120,30 +110,43 @@ function agregarACarrito(prod) {
 let filtro= document.getElementById('filtro');
 let min= document.getElementById('min');
 let max= document.getElementById('max');
+let btnBorrarFiltros = document.getElementById('quitarFiltro');
 
 //filtrar por precio
-function filtrarPorPrecio(precioMin, precioMax){
-    const filtrados = productos.filter((prod)=> (prod.precio >= precioMin) && (prod.precio <= precioMax));
-    sessionStorage.setItem('filtrados',JSON.stringify(filtrados));
-    console.log(filtrados);
-    return filtrados;
-}
+function filtrarPorPrecio(productos, minPrecio, maxPrecio) {
+    const min = parseFloat(minPrecio);
+    const max = parseFloat(maxPrecio);
 
-filtro.onclick = () => {
-    console.log('click');
-    console.log(min.value, max.value);
-    if((min.value !== '') && (max.value !== '')&&(min.value < max.value)){
-        let listaFiltrados = filtrarPorPrecio(min.value, max.value);
-        console.log(listaFiltrados);
-        renderizarProductos(listaFiltrados);
+    if (isNaN(min) || isNaN(max) || min >= max) {
+        console.error('Código inválido');
+        return [];
     }
+
+    return productos.filter((prod) => prod.precio >= min && prod.precio <= max);
 }
 
-//agregar btn que borre los filtros para que vuelva a la pantalla inicial.
+// Evento para filtrar con el click
+filtro.onclick = () => {
+    const minPrice = min.value;
+    const maxPrice = max.value;
+    const filteredProducts = filtrarPorPrecio(productos, minPrice, maxPrice);
+
+    // Filtra los productos que necesita y los guarda en el localStorage
+    renderizarProductos(filteredProducts);
+    localStorage.setItem('filtrados', JSON.stringify(filteredProducts));
+};
+
+// Remover los filtros y vuelve a la pantalla principal
+    btnBorrarFiltros.onclick = () => {
+    renderizarProductos(productos);
+    localStorage.removeItem('filtrados');
+};
+
+//Finaliza compra, modal y vuelve a la pantalla inicial.
 finalizarBtn.onclick=()=>{
     carro=[];
-    document.getElementById('tablabody').innerHTML ='';
-    document.getElementById('total').innerText = 'Total a pagar $:';
+    tablaBody.innerHTML ='';
+    document.getElementById("total").innerText = 'Total a pagar $:';
     Swal.fire('Gracias por tu compra','Pronto la recibirás','success')
     //storage
     localStorage.removeItem('carro');
@@ -152,7 +155,7 @@ finalizarBtn.onclick=()=>{
 //vaciar carro
 vaciarBtn.onclick=()=>{
     carro=[];
-    document.getElementById('tablaBody').innerHTML = '';
+    tablaBody.innerHTML = '';
     document.getElementById('total').innerText = 'Total a pagar $:';
     Swal.fire('Hemos vaciado el carro', 'Puedes volver a comenzar', 'success')
     localStorage.removeItem('carro');
@@ -163,7 +166,6 @@ async function obtenerJson() {
     const URLJSON = '/productos.json';
     const respuesta = await fetch(URLJSON);
     const data = await respuesta.json();
-    console.log(data);
     productos = data;
     renderizarProductos(productos);   
 }
